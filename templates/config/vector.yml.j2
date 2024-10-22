@@ -1,0 +1,23 @@
+---
+sources:
+  journald:
+    type: journald
+    include_units:
+      - snowbridge-beefy-relay
+      - snowbridge-beacon-relay
+      - snowbridge-asset-hub-parachain-relay
+      - snowbridge-asset-hub-ethereum-relay
+      - snowbridge-primary-governance-relay
+      - snowbridge-secondary-governance-relay
+sinks:
+  cloudwatch:
+    type: aws_cloudwatch_logs
+    assume_role: arn:aws:iam::{{ aws_account_id }}:instance-profile/SnowbridgeRelayerRole
+    inputs:
+      - journald
+    compression: gzip
+    encoding:
+      codec: json
+    region: eu-central-1
+    group_name: "{{ env_name }}/vector/journald"
+    stream_name: "{% raw %}{{ _SYSTEMD_UNIT }}{% endraw %}"

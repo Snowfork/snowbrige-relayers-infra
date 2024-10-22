@@ -1,0 +1,12 @@
+[Unit]
+Description=Snowbridge {{item.name}}
+
+[Service]
+WorkingDirectory=/opt
+ExecStart=/opt/bin/start-{{item.name}}.sh
+Type=simple
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

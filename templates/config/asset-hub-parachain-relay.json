@@ -1,0 +1,37 @@
+{
+  "source": {
+    "ethereum": {
+      "endpoint": "{{ endpoints.ethereum }}"
+    },
+    "polkadot": {
+      "endpoint": "{{ endpoints.polkadot }}"
+    },
+    "parachain": {
+      "endpoint": "{{ endpoints.bridgehub }}",
+      "maxWatchedExtrinsics": 8
+    },
+    "contracts": {
+      "BeefyClient": "{{ contracts.BeefyClient }}",
+      "Gateway": "{{ contracts.Gateway }}"
+    },
+    "channel-id": "{{ channels.assethub }}"
+  },
+  "sink": {
+    "ethereum": {
+      "endpoint": "{{ endpoints.flashbots }}",
+      "gas-limit": null
+    },
+    "contracts": {
+      "Gateway": "{{ contracts.Gateway }}"
+    }
+  },
+  "schedule": {
+    "id": "{{ message_relayers.id }}",
+    "totalRelayerCount": "{{ message_relayers.relayer_count }}",
+    "sleepInterval": "{{ message_relayers.sleep_interval }}"
+  },
+  "ofac": {
+    "enabled": "{{ ofac.enabled }}",
+    "apiKey": "{{ api_keys.chainalysis }}"
+  }
+}

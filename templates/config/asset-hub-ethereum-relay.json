@@ -1,0 +1,42 @@
+{
+  "source": {
+    "ethereum": {
+      "endpoint": "{{ endpoints.ethereum }}"
+    },
+    "contracts": {
+      "Gateway": "{{ contracts.Gateway }}"
+    },
+    "channel-id": "{{ channels.assethub }}",
+    "beacon": {
+      "endpoint": "{{ endpoints.beacon }}",
+      "stateEndpoint": "{{ endpoints.beacon }}",
+      "spec": {
+        "syncCommitteeSize": 512,
+        "slotsInEpoch": 32,
+        "epochsPerSyncCommitteePeriod": 256,
+        "denebForkedEpoch": "{{ ethereum_chain.deneb_forked_epoch }}"
+      },
+      "datastore": {
+        "location": "/opt/var/beacon-state",
+        "maxEntries": 100
+      }
+    }
+  },
+  "sink": {
+    "parachain": {
+      "endpoint": "{{ endpoints.bridgehub }}",
+      "maxWatchedExtrinsics": "{{ parachain.max_watched_extriniscs }}",
+      "headerRedundancy": 20
+    }
+  },
+  "instantVerification": false,
+  "schedule": {
+    "id": "{{ message_relayers.id }}",
+    "totalRelayerCount": "{{ message_relayers.relayer_count }}",
+    "sleepInterval": "{{ message_relayers.sleep_interval }}"
+  },
+  "ofac": {
+    "enabled": "{{ ofac.enabled }}",
+    "apiKey": "{{ api_keys.chainalysis }}"
+  }
+}

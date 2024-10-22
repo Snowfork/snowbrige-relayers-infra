@@ -1,0 +1,39 @@
+---
+ansible_connection: ssh
+ansible_user: ubuntu
+
+env_name: "prod"
+ethereum_chain:
+  name: "mainnet"
+  deneb_forked_epoch: 269568
+  gas_limit: null
+endpoints:
+  beacon: "https://snowfork-eth-mainnet-beacon-lodestar.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
+  ethereum: "https://snowfork-eth-mainnet-full-geth.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
+  flashbots: https://rpc.flashbots.net/fast
+  polkadot: "wss://api-polkadot.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
+  bridgehub: "wss://api-bridge-hub-polkadot.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
+api_keys:
+  chainalysis: "{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/chainalysis-api-key', region='eu-central-1') }}"
+contracts:
+  Gateway: "0x27ca963c279c93801941e1eb8799c23f407d68e7"
+  BeefyClient: "0x6ed05baa904df3de117ecfa638d4cb84e1b8a00c"
+channels:
+  assethub: "0xc173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539"
+parachain:
+  max_watched_extriniscs: 200
+relayer:
+  update_slot_interval: 32
+message_relayers:
+  id: # TODO add assigned ID
+  relayer_count: # TODO add relayer count
+  sleep_interval: 180
+ofac:
+  enabled: "true"
+relays:
+  - name: asset-hub-parachain-relay
+    enabled: true
+    state: started
+  - name: asset-hub-ethereum-relay
+    enabled: true
+    state: started

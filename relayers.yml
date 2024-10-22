@@ -1,0 +1,92 @@
+---
+- name: Update relayers
+  hosts: relayers
+  remote_user: root
+  become: true
+  become_method: sudo
+
+  vars:
+    aws_region: "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
+    aws_account_id: "{{ lookup('ansible.builtin.env', 'AWS_ACCOUNT_ID') }}"
+
+  tasks:
+    - name: Install AWS CLI
+      community.general.snap:
+        name: aws-cli
+        classic: true
+
+    - name: Install Vector
+      ansible.builtin.shell: |
+        bash -c "$(curl -L https://setup.vector.dev)"
+        apt-get install vector
+
+    - name: Create vector configuration
+      ansible.builtin.template:
+        src: templates/config/vector.yml.j2
+        dest: /etc/vector/vector.yaml
+
+    - name: Enable vector service
+      ansible.builtin.systemd_service:
+        name: vector
+        state: restarted
+        enabled: true
+
+    - name: Create directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /opt/
+        - /opt/config
+        - /opt/bin
+        - /opt/var
+        - /opt/var/beacon-state
+
+    - name: Upload binary
+      get_url:
+        url: "https://github.com/Snowfork/snowbridge/releases/download/relayer-v1.0.32/snowbridge-relay"
+        dest: "/opt/bin/snowbridge-relay"
+        mode: '0755'
+
+    # relayers
+
+    - name: Stop relay services
+      ansible.builtin.systemd_service:
+        name: "snowbridge-{{ item.name }}"
+        state: "stopped"
+        enabled: "{{ item.enabled }}"
+      loop: "{{ relays }}"
+      notify: reload systemd
+
+    - name: Relay config
+      ansible.builtin.template:
+        src: "templates/config/{{ item.name }}.json"
+        dest: "/opt/config/{{ item.name }}.json"
+      loop: "{{ relays }}"
+
+    - name: Relay service
+      ansible.builtin.template:
+        src: "templates/services/relay.service.j2"
+        dest: "/etc/systemd/system/snowbridge-{{ item.name }}.service"
+      loop: "{{ relays }}"
+
+    - name: Startup scripts
+      ansible.builtin.template:
+        src: "templates/scripts/start-{{ item.name }}.sh"
+        dest: "/opt/bin/start-{{ item.name }}.sh"
+        mode: "0755"
+      loop: "{{ relays }}"
+
+    - name: Enable relay service
+      ansible.builtin.systemd_service:
+        name: "snowbridge-{{ item.name }}"
+        state: "{{ item.state }}"
+        enabled: "{{ item.enabled }}"
+      loop: "{{ relays }}"
+      notify: reload systemd
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes

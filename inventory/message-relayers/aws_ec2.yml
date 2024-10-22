@@ -1,0 +1,15 @@
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
+
+# Filter instances by tags
+include_filters:
+  - tag:Project:
+      - Snowbridge
+  - tag:Environment:
+      - ProdMessageRelayers
+
+# Create host groups
+groups:
+  relayers: "'True' in tags.Relayers and 'ProdMessageRelayers' in tags.Environment"

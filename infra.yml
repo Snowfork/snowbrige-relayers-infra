@@ -1,0 +1,83 @@
+---
+- name: Provision AWS resources
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: false
+  vars:
+    aws_region: "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
+    aws_account_id: "{{ lookup('ansible.builtin.env', 'AWS_ACCOUNT_ID') }}"
+
+  tasks:
+    - name: Retrieve public key from EC2 key pair
+      amazon.aws.ec2_key_info:
+        names: [ "snowbridge-relayers-key" ]
+        include_public_key: true
+      register: key_info
+
+    - name: Save public key to a variable
+      set_fact:
+        public_key: "{{ key_info.keypairs[0].public_key }}"
+
+    - name: Display public key material
+      debug:
+        msg: "{{ key_info.keypairs[0].public_key }}"
+
+    - name: Create default keypair
+      amazon.aws.ec2_key:
+        name: "message-relayers-key"
+        key_material: "{{ public_key }}"
+
+    - name: Create IAM role for reading secrets
+      amazon.aws.iam_role:
+        name: "MessageRelayersRole"
+        assume_role_policy_document: "{{ lookup('template', 'templates/aws/assume_role_policy.json') }}"
+        state: present
+      register: iam_role
+
+    - name: Create IAM policy for reading secrets
+      amazon.aws.iam_policy:
+        iam_type: role
+        iam_name: "MessageRelayersRole"
+        policy_name: SnowbridgeReadSecretsPolicy
+        policy_json: "{{ lookup('template', 'templates/aws/read_secrets_policy.json') }}"
+        state: present
+
+    - name: Configure IAM Policy for pushing CloudWatch Logs
+      amazon.aws.iam_policy:
+        iam_type: role
+        iam_name: "MessageRelayersRole"
+        policy_name: SnowbridgePushLogsPolicy
+        policy_json: "{{ lookup('file', 'templates/aws/cloudwatch_logs_policy.json') }}"
+        state: present
+
+    - name: Create testnet security group
+      amazon.aws.ec2_security_group:
+        name: "snowbridge-message-relayers-sg"
+        description: Allow SSH access
+        rules:
+          - proto: tcp
+            ports: 22
+            cidr_ip: 0.0.0.0/0
+          - proto: icmp
+            icmp_type: 8
+            icmp_code: 0
+            cidr_ip: 0.0.0.0/0
+      register: testnet_security_group
+
+    - name: Start testnet instance
+      amazon.aws.ec2_instance:
+        name: "snowbridge-message-relayers"
+        instance_type: t3.large
+        image_id: ami-01e444924a2233b07
+        key_name: "message-relayers-key"
+        security_group: "{{ testnet_security_group.group_id }}"
+        volumes:
+          - device_name: /dev/sda1
+            ebs:
+              volume_size: 1200
+              delete_on_termination: true
+        instance_role: "MessageRelayersRole"
+        tags:
+          Project: Snowbridge
+          Environment: ProdMessageRelayers
+          Relayers: True
