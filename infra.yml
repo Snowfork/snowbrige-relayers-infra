@@ -74,7 +74,7 @@
         volumes:
           - device_name: /dev/sda1
             ebs:
-              volume_size: 1200
+              volume_size: 100
               delete_on_termination: true
         instance_role: "MessageRelayersRole"
         tags:
