@@ -51,12 +51,13 @@
 
     # relayers
 
-    - name: Stop relay services
-      ansible.builtin.systemd_service:
+    - name: Stop relay services if they exist
+      ansible.builtin.systemd:
         name: "snowbridge-{{ item.name }}"
         state: "stopped"
-        enabled: "{{ item.enabled }}"
+        enabled: "{{ item.enabled | default('no') }}"
       loop: "{{ relays }}"
+      ignore_errors: true  # Ignore errors if the service doesn't exist yet (on first run)
       notify: reload systemd
 
     - name: Relay config

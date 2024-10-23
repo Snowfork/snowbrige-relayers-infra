@@ -9,7 +9,7 @@ ethereum_chain:
   gas_limit: null
 endpoints:
   beacon: "https://snowfork-eth-mainnet-beacon-lodestar.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
-  ethereum: "https://snowfork-eth-mainnet-full-geth.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
+  ethereum: "wss://snowfork-eth-mainnet-full-geth.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
   flashbots: https://rpc.flashbots.net/fast
   polkadot: "wss://api-polkadot.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
   bridgehub: "wss://api-bridge-hub-polkadot.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
@@ -25,8 +25,8 @@ parachain:
 relayer:
   update_slot_interval: 32
 message_relayers:
-  id: # TODO add assigned ID
-  relayer_count: # TODO add relayer count
+  id: "{{ lookup('env', 'RELAYER_ID') }}"
+  relayer_count: "{{ lookup('env', 'RELAYER_COUNT') }}"
   sleep_interval: 180
 ofac:
   enabled: "true"
