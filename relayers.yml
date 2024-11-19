@@ -45,32 +45,19 @@
 
     - name: Upload binary
       get_url:
-        url: "https://github.com/Snowfork/snowbridge/releases/download/relayer-v1.0.32/snowbridge-relay"
+        url: "https://github.com/Snowfork/snowbridge/releases/download/relayer-v1.0.33/snowbridge-relay"
         dest: "/opt/bin/snowbridge-relay"
-        mode: '0755'
+        mode: "0755"
 
     # relayers
-
-    - name: Stop relay services if they exist
-      ansible.builtin.systemd:
-        name: "snowbridge-{{ item.name }}"
-        state: "stopped"
-        enabled: "{{ item.enabled | default('no') }}"
-      loop: "{{ relays }}"
-      ignore_errors: true  # Ignore errors if the service doesn't exist yet (on first run)
-      notify: reload systemd
 
     - name: Relay config
       ansible.builtin.template:
         src: "templates/config/{{ item.name }}.json"
         dest: "/opt/config/{{ item.name }}.json"
       loop: "{{ relays }}"
-
-    - name: Relay service
-      ansible.builtin.template:
-        src: "templates/services/relay.service.j2"
-        dest: "/etc/systemd/system/snowbridge-{{ item.name }}.service"
-      loop: "{{ relays }}"
+      register: relay_configs
+      notify: Restart service when config changed
 
     - name: Startup scripts
       ansible.builtin.template:
@@ -79,15 +66,27 @@
         mode: "0755"
       loop: "{{ relays }}"
 
+    - name: Relay service
+      ansible.builtin.template:
+        src: "templates/services/relay.service.j2"
+        dest: "/etc/systemd/system/snowbridge-{{ item.name }}.service"
+      loop: "{{ relays }}"
+
     - name: Enable relay service
       ansible.builtin.systemd_service:
         name: "snowbridge-{{ item.name }}"
         state: "{{ item.state }}"
         enabled: "{{ item.enabled }}"
       loop: "{{ relays }}"
-      notify: reload systemd
+
+    - name: Restart service when config changed
+      ansible.builtin.systemd_service:
+        name: "snowbridge-{{ item.item.name }}"
+        state: restarted
+      when: item.changed
+      loop: "{{ relay_configs.results }}"
 
   handlers:
-    - name: reload systemd
+    - name: Reload systemd
       systemd:
         daemon_reload: yes
