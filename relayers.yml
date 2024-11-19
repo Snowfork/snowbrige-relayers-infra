@@ -48,6 +48,7 @@
         url: "https://github.com/Snowfork/snowbridge/releases/download/relayer-v1.0.33/snowbridge-relay"
         dest: "/opt/bin/snowbridge-relay"
         mode: "0755"
+      notify: Restart service when config changed
 
     # relayers
 
@@ -79,14 +80,14 @@
         enabled: "{{ item.enabled }}"
       loop: "{{ relays }}"
 
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
     - name: Restart service when config changed
       ansible.builtin.systemd_service:
         name: "snowbridge-{{ item.item.name }}"
         state: restarted
       when: item.changed
       loop: "{{ relay_configs.results }}"
-
-  handlers:
-    - name: Reload systemd
-      systemd:
-        daemon_reload: yes
