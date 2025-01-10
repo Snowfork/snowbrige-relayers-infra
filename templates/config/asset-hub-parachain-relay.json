@@ -7,8 +7,7 @@
       "endpoint": "{{ endpoints.polkadot }}"
     },
     "parachain": {
-      "endpoint": "{{ endpoints.bridgehub }}",
-      "maxWatchedExtrinsics": 8
+      "endpoint": "{{ endpoints.bridgehub }}"
     },
     "contracts": {
       "BeefyClient": "{{ contracts.BeefyClient }}",
