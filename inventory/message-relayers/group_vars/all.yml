@@ -5,8 +5,11 @@ ansible_user: ubuntu
 env_name: "prod"
 ethereum_chain:
   name: "mainnet"
-  deneb_forked_epoch: 269568
-  gas_limit: null
+  forked_versions:
+    deneb: 269568
+    electra: 364032
+  gas_limit: 0
+  gas_tip_cap: 1000000
 endpoints:
   beacon: "https://snowfork-eth-mainnet-beacon-lodestar.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
   ethereum: "wss://snowfork-eth-mainnet-full-geth.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"

@@ -45,7 +45,7 @@
 
     - name: Upload binary
       get_url:
-        url: "https://github.com/Snowfork/snowbridge/releases/download/relayer-v1.0.40/snowbridge-relay"
+        url: "https://github.com/Snowfork/snowbridge/releases/download/relayer-v1-v1.0.0/snowbridge-relay"
         dest: "/opt/bin/snowbridge-relay"
         mode: "0755"
       notify: Restart service when config changed

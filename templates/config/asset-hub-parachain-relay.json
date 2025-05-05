@@ -18,7 +18,8 @@
   "sink": {
     "ethereum": {
       "endpoint": "{{ endpoints.flashbots }}",
-      "gas-limit": null
+      "gas-limit": "{{ ethereum_chain.gas_limit }}",
+      "gas-tip-cap": "{{ ethereum_chain.gas_tip_cap }}"
     },
     "contracts": {
       "Gateway": "{{ contracts.Gateway }}"

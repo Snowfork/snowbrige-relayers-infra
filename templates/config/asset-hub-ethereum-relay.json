@@ -14,7 +14,10 @@
         "syncCommitteeSize": 512,
         "slotsInEpoch": 32,
         "epochsPerSyncCommitteePeriod": 256,
-        "denebForkedEpoch": "{{ ethereum_chain.deneb_forked_epoch }}"
+        "forkVersions": {
+          "deneb": "{{ ethereum_chain.forked_versions.deneb }}",
+          "electra": "{{ ethereum_chain.forked_versions.electra }}"
+        }
       },
       "datastore": {
         "location": "/opt/var/beacon-state",
