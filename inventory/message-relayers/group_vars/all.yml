@@ -14,7 +14,7 @@ endpoints:
   beacon: "https://snowfork-eth-mainnet-beacon-lodestar.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
   ethereum: "wss://snowfork-eth-mainnet-full-geth.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
   flashbots: https://rpc.flashbots.net/fast
-  polkadot: "wss://api-polkadot.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
+  polkadot: "wss://api-polkadot.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
   bridgehub: "wss://api-bridge-hub-polkadot.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-polkadot-node-api-key', region='eu-central-1') }}"
 api_keys:
   chainalysis: "{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/chainalysis-api-key', region='eu-central-1') }}"
