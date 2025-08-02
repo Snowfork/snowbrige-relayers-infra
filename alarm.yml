@@ -1,0 +1,54 @@
+---
+- name: Create CloudWatch alarm for fatal relayer logs
+  hosts: relayers
+  remote_user: root
+  become: true
+  become_method: sudo
+
+  vars:
+    aws_region: "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
+    aws_account_id: "{{ lookup('ansible.builtin.env', 'AWS_ACCOUNT_ID') }}"
+
+  tasks:
+    - name: Create CloudWatch log metric filter for fatal logs
+      amazon.aws.cloudwatchlogs_log_group_metric_filter:
+        log_group_name: "{{ env_name }}/vector/journald"
+        filter_name: FatalLogsFilter
+        filter_pattern: "FATAL"
+        metric_transformations:
+          - metric_name: fatal_logs
+            metric_namespace: "Snowbridge/Relayers"
+            metric_value: "1"
+        region: "{{ aws_region }}"
+        state: present
+
+    - name: Create SNS topic for PagerTree notifications
+      amazon.aws.sns_topic:
+        name: pagertree
+        region: "{{ aws_region }}"
+        state: present
+      register: sns_topic
+
+    - name: Create SNS subscription for PagerTree
+      amazon.aws.sns:
+        topic_arn: "{{ sns_topic.sns_arn }}"
+        protocol: https
+        endpoint: "{{ pager_url }}"
+        region: "{{ aws_region }}"
+        state: present
+
+    - name: Create CloudWatch alarm for fatal relayer logs
+      amazon.aws.cloudwatch_metric_alarm:
+        name: FatalRelayerLogs
+        description: "Alarm when fatal logs occur more than 3 times in 5 minutes"
+        metric_name: fatal_logs
+        namespace: Snowbridge/Relayers
+        statistic: SampleCount
+        comparison: GreaterThanThreshold
+        threshold: 3
+        period: 300
+        evaluation_periods: 1
+        alarm_actions:
+          - "{{ sns_topic.sns_arn }}"
+        region: "{{ aws_region }}"
+        state: present
