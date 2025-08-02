@@ -1,14 +1,13 @@
 ---
 - name: Create CloudWatch alarm for fatal relayer logs
-  hosts: 127.0.0.1
+  hosts: localhost
   connection: local
   gather_facts: false
 
   vars:
     aws_region: "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
     aws_account_id: "{{ lookup('ansible.builtin.env', 'AWS_ACCOUNT_ID') }}"
-    env_name: "prod"
-    pager_url: "{{ lookup('ansible.builtin.env', 'PAGER_URL') }}"
+    pager_url: "{{ hostvars[groups['relayers'][0]]['pager_url'] | default(lookup('ansible.builtin.env', 'PAGER_URL')) }}"
 
   tasks:
     - name: Check if pager URL is defined
@@ -18,7 +17,7 @@
 
     - name: Check if metric filter exists
       shell: |
-        aws logs describe-metric-filters --log-group-name "{{ env_name }}/vector/journald" --filter-name-prefix "FatalLogsFilter" --region {{ aws_region }} --query 'metricFilters[?filterName==`FatalLogsFilter`]' --output text
+        aws logs describe-metric-filters --log-group-name "prod/vector/journald" --filter-name-prefix "FatalLogsFilter" --region {{ aws_region }} --query 'metricFilters[?filterName==`FatalLogsFilter`]' --output text
       register: metric_filter_check
       failed_when: false
       changed_when: false
@@ -26,9 +25,9 @@
     - name: Create CloudWatch log metric filter for fatal logs
       shell: |
         aws logs put-metric-filter \
-          --log-group-name "{{ env_name }}/vector/journald" \
+          --log-group-name "prod/vector/journald" \
           --filter-name "FatalLogsFilter" \
-          --filter-pattern "FATAL" \
+          --filter-pattern "{ $.message = %\"level\":\"fatal\",% }" \
           --metric-transformations \
             metricName=fatal_logs,metricNamespace="Snowbridge/Relayers",metricValue=1 \
           --region {{ aws_region }}
