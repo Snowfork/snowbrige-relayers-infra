@@ -1,54 +1,100 @@
 ---
 - name: Create CloudWatch alarm for fatal relayer logs
-  hosts: relayers
-  remote_user: root
-  become: true
-  become_method: sudo
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: false
 
   vars:
     aws_region: "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
     aws_account_id: "{{ lookup('ansible.builtin.env', 'AWS_ACCOUNT_ID') }}"
+    env_name: "prod"
+    pager_url: "{{ lookup('ansible.builtin.env', 'PAGER_URL') }}"
 
   tasks:
+    - name: Check if pager URL is defined
+      fail:
+        msg: "PAGER_URL environment variable is not set"
+      when: pager_url == ""
+
+    - name: Check if metric filter exists
+      shell: |
+        aws logs describe-metric-filters --log-group-name "{{ env_name }}/vector/journald" --filter-name-prefix "FatalLogsFilter" --region {{ aws_region }} --query 'metricFilters[?filterName==`FatalLogsFilter`]' --output text
+      register: metric_filter_check
+      failed_when: false
+      changed_when: false
+
     - name: Create CloudWatch log metric filter for fatal logs
-      amazon.aws.cloudwatchlogs_log_group_metric_filter:
-        log_group_name: "{{ env_name }}/vector/journald"
-        filter_name: FatalLogsFilter
-        filter_pattern: "FATAL"
-        metric_transformations:
-          - metric_name: fatal_logs
-            metric_namespace: "Snowbridge/Relayers"
-            metric_value: "1"
-        region: "{{ aws_region }}"
-        state: present
+      shell: |
+        aws logs put-metric-filter \
+          --log-group-name "{{ env_name }}/vector/journald" \
+          --filter-name "FatalLogsFilter" \
+          --filter-pattern "FATAL" \
+          --metric-transformations \
+            metricName=fatal_logs,metricNamespace="Snowbridge/Relayers",metricValue=1 \
+          --region {{ aws_region }}
+      when: metric_filter_check.stdout == ""
+      register: metric_filter_result
+      changed_when: metric_filter_result.rc == 0
+    - name: Check if SNS topic exists
+      shell: |
+        aws sns list-topics --region {{ aws_region }} --query 'Topics[?contains(TopicArn, `pagerduty`)].TopicArn' --output text
+      register: sns_topic_check
+      failed_when: false
+      changed_when: false
 
-    - name: Create SNS topic for PagerTree notifications
-      amazon.aws.sns_topic:
-        name: pagertree
-        region: "{{ aws_region }}"
-        state: present
-      register: sns_topic
+    - name: Create SNS topic for PagerDuty notifications
+      shell: |
+        aws sns create-topic --name pagerduty --region {{ aws_region }} --output text --query 'TopicArn'
+      register: sns_topic_result
+      when: sns_topic_check.stdout == ""
+      changed_when: sns_topic_result.rc == 0
 
-    - name: Create SNS subscription for PagerTree
-      amazon.aws.sns:
-        topic_arn: "{{ sns_topic.sns_arn }}"
-        protocol: https
-        endpoint: "{{ pager_url }}"
-        region: "{{ aws_region }}"
-        state: present
+    - name: Get existing SNS topic ARN if it exists
+      shell: |
+        aws sns list-topics --region {{ aws_region }} --query 'Topics[?contains(TopicArn, `pagerduty`)].TopicArn' --output text
+      register: existing_sns_topic
+      when: sns_topic_check.stdout != ""
+      changed_when: false
+
+    - name: Set SNS topic ARN variable
+      set_fact:
+        sns_topic_arn: "{{ (sns_topic_result.stdout | default(existing_sns_topic.stdout | default(''))).strip() }}"
+
+    - name: Check if SNS subscription exists
+      shell: |
+        aws sns list-subscriptions-by-topic --topic-arn {{ sns_topic_arn }} --region {{ aws_region }} --query 'Subscriptions[?Endpoint==`{{ pager_url }}`].SubscriptionArn' --output text
+      register: sns_subscription_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create SNS subscription for PagerDuty
+      shell: |
+        aws sns subscribe --topic-arn {{ sns_topic_arn }} --protocol https --notification-endpoint "{{ pager_url }}" --region {{ aws_region }}
+      register: sns_subscription_result
+      when: sns_subscription_check.stdout == ""
+      changed_when: sns_subscription_result.rc == 0
+
+    - name: Check if CloudWatch alarm exists
+      shell: |
+        aws cloudwatch describe-alarms --alarm-names "FatalRelayerLogs" --region {{ aws_region }} --query 'MetricAlarms[?AlarmName==`FatalRelayerLogs`].AlarmName' --output text
+      register: alarm_check
+      failed_when: false
+      changed_when: false
 
     - name: Create CloudWatch alarm for fatal relayer logs
-      amazon.aws.cloudwatch_metric_alarm:
-        name: FatalRelayerLogs
-        description: "Alarm when fatal logs occur more than 3 times in 5 minutes"
-        metric_name: fatal_logs
-        namespace: Snowbridge/Relayers
-        statistic: SampleCount
-        comparison: GreaterThanThreshold
-        threshold: 3
-        period: 300
-        evaluation_periods: 1
-        alarm_actions:
-          - "{{ sns_topic.sns_arn }}"
-        region: "{{ aws_region }}"
-        state: present
+      shell: |
+        aws cloudwatch put-metric-alarm \
+          --alarm-name "FatalRelayerLogs" \
+          --alarm-description "Alarm when fatal logs occur more than 3 times in 5 minutes" \
+          --metric-name "fatal_logs" \
+          --namespace "Snowbridge/Relayers" \
+          --statistic "SampleCount" \
+          --period 300 \
+          --evaluation-periods 1 \
+          --threshold 3 \
+          --comparison-operator "GreaterThanThreshold" \
+          --alarm-actions "{{ sns_topic_arn }}" \
+          --region {{ aws_region }}
+      when: alarm_check.stdout == ""
+      register: alarm_result
+      changed_when: alarm_result.rc == 0
