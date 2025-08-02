@@ -40,3 +40,4 @@ relays:
   - name: asset-hub-ethereum-relay
     enabled: true
     state: started
+pager_url: "{{ lookup('env', 'PAGER_URL') }}"
