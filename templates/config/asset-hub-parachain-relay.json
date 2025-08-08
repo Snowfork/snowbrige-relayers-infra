@@ -1,13 +1,16 @@
 {
   "source": {
     "ethereum": {
-      "endpoint": "{{ endpoints.ethereum }}"
+      "endpoint": "{{ endpoints.ethereum }}",
+      "heartbeat-secs": "{{ ethereum_chain.heartbeat_secs }}"
     },
     "polkadot": {
-      "endpoint": "{{ endpoints.polkadot }}"
+      "endpoint": "{{ endpoints.polkadot }}",
+      "heartbeat-secs": "{{ polkadot.heartbeat_secs }}"
     },
     "parachain": {
-      "endpoint": "{{ endpoints.bridgehub }}"
+      "endpoint": "{{ endpoints.bridgehub }}",
+      "heartbeat-secs": "{{ parachain.heartbeat_secs }}"
     },
     "contracts": {
       "BeefyClient": "{{ contracts.BeefyClient }}",
@@ -17,7 +20,9 @@
   },
   "sink": {
     "ethereum": {
-      "endpoint": "{{ endpoints.flashbots }}"
+      "endpoint": "{{ endpoints.flashbots }}",
+      "heartbeat-secs": "{{ ethereum_chain.heartbeat_secs }}",
+      "call-timeout-secs": "{{ ethereum_chain.call_timeout_secs }}"
     },
     "contracts": {
       "Gateway": "{{ contracts.Gateway }}"
