@@ -11,7 +11,7 @@ ethereum_chain:
   gas_limit: 0
   gas_tip_cap: 1000000
   heartbeat_secs: 180,
-  call_timeout_secs: 300
+  call_timeout_secs: 180
 endpoints:
   beacon: "https://snowfork-eth-mainnet-beacon-lodestar.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
   ethereum: "wss://snowfork-eth-mainnet-full-geth.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
