@@ -1,13 +1,16 @@
 {
   "source": {
     "ethereum": {
-      "endpoint": "{{ endpoints.ethereum }}"
+      "endpoint": "{{ endpoints.ethereum }}",
+      "heartbeat-secs": 180
     },
     "polkadot": {
-      "endpoint": "{{ endpoints.polkadot }}"
+      "endpoint": "{{ endpoints.polkadot }}",
+      "heartbeat-secs": 30
     },
     "parachain": {
-      "endpoint": "{{ endpoints.bridgehub }}"
+      "endpoint": "{{ endpoints.bridgehub }}",
+      "heartbeat-secs": 30
     },
     "contracts": {
       "BeefyClient": "{{ contracts.BeefyClient }}",
@@ -19,7 +22,8 @@
     "ethereum": {
       "endpoint": "{{ endpoints.flashbots }}",
       "gas-limit": "{{ ethereum_chain.gas_limit }}",
-      "gas-tip-cap": "{{ ethereum_chain.gas_tip_cap }}"
+      "gas-tip-cap": "{{ ethereum_chain.gas_tip_cap }}",
+      "heartbeat-secs": 180
     },
     "contracts": {
       "Gateway": "{{ contracts.Gateway }}"
