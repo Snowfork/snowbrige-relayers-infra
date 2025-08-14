@@ -1,0 +1,99 @@
+---
+- name: Create CloudWatch alarm for fatal relayer logs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    aws_region: "{{ lookup('ansible.builtin.env', 'AWS_DEFAULT_REGION') }}"
+    aws_account_id: "{{ lookup('ansible.builtin.env', 'AWS_ACCOUNT_ID') }}"
+    pager_url: "{{ hostvars[groups['relayers'][0]]['pager_url'] | default(lookup('ansible.builtin.env', 'PAGER_URL')) }}"
+
+  tasks:
+    - name: Check if pager URL is defined
+      fail:
+        msg: "PAGER_URL environment variable is not set"
+      when: pager_url == ""
+
+    - name: Check if metric filter exists
+      shell: |
+        aws logs describe-metric-filters --log-group-name "prod/vector/journald" --filter-name-prefix "FatalLogsFilter" --region {{ aws_region }} --query 'metricFilters[?filterName==`FatalLogsFilter`]' --output text
+      register: metric_filter_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create CloudWatch log metric filter for fatal logs
+      shell: |
+        aws logs put-metric-filter \
+          --log-group-name "prod/vector/journald" \
+          --filter-name "FatalLogsFilter" \
+          --filter-pattern "{ $.message = %\"level\":\"fatal\",% }" \
+          --metric-transformations \
+            metricName=fatal_logs,metricNamespace="Snowbridge/Relayers",metricValue=1 \
+          --region {{ aws_region }}
+      when: metric_filter_check.stdout == ""
+      register: metric_filter_result
+      changed_when: metric_filter_result.rc == 0
+    - name: Check if SNS topic exists
+      shell: |
+        aws sns list-topics --region {{ aws_region }} --query 'Topics[?contains(TopicArn, `pagerduty`)].TopicArn' --output text
+      register: sns_topic_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create SNS topic for PagerDuty notifications
+      shell: |
+        aws sns create-topic --name pagerduty --region {{ aws_region }} --output text --query 'TopicArn'
+      register: sns_topic_result
+      when: sns_topic_check.stdout == ""
+      changed_when: sns_topic_result.rc == 0
+
+    - name: Get existing SNS topic ARN if it exists
+      shell: |
+        aws sns list-topics --region {{ aws_region }} --query 'Topics[?contains(TopicArn, `pagerduty`)].TopicArn' --output text
+      register: existing_sns_topic
+      when: sns_topic_check.stdout != ""
+      changed_when: false
+
+    - name: Set SNS topic ARN variable
+      set_fact:
+        sns_topic_arn: "{{ (sns_topic_result.stdout | default(existing_sns_topic.stdout | default(''))).strip() }}"
+
+    - name: Check if SNS subscription exists
+      shell: |
+        aws sns list-subscriptions-by-topic --topic-arn {{ sns_topic_arn }} --region {{ aws_region }} --query 'Subscriptions[?Endpoint==`{{ pager_url }}`].SubscriptionArn' --output text
+      register: sns_subscription_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create SNS subscription for PagerDuty
+      shell: |
+        aws sns subscribe --topic-arn {{ sns_topic_arn }} --protocol https --notification-endpoint "{{ pager_url }}" --region {{ aws_region }}
+      register: sns_subscription_result
+      when: sns_subscription_check.stdout == ""
+      changed_when: sns_subscription_result.rc == 0
+
+    - name: Check if CloudWatch alarm exists
+      shell: |
+        aws cloudwatch describe-alarms --alarm-names "FatalRelayerLogs" --region {{ aws_region }} --query 'MetricAlarms[?AlarmName==`FatalRelayerLogs`].AlarmName' --output text
+      register: alarm_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create CloudWatch alarm for fatal relayer logs
+      shell: |
+        aws cloudwatch put-metric-alarm \
+          --alarm-name "FatalRelayerLogs" \
+          --alarm-description "Alarm when fatal logs occur more than 3 times in 5 minutes" \
+          --metric-name "fatal_logs" \
+          --namespace "Snowbridge/Relayers" \
+          --statistic "SampleCount" \
+          --period 300 \
+          --evaluation-periods 1 \
+          --threshold 3 \
+          --comparison-operator "GreaterThanThreshold" \
+          --alarm-actions "{{ sns_topic_arn }}" \
+          --region {{ aws_region }}
+      when: alarm_check.stdout == ""
+      register: alarm_result
+      changed_when: alarm_result.rc == 0

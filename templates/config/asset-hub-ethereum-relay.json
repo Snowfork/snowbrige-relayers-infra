@@ -2,7 +2,7 @@
   "source": {
     "ethereum": {
       "endpoint": "{{ endpoints.ethereum }}",
-      "heartbeat-secs": 180
+      "heartbeat-secs": "{{ ethereum_chain.heartbeat_secs }}"
     },
     "contracts": {
       "Gateway": "{{ contracts.Gateway }}"
@@ -31,7 +31,7 @@
       "endpoint": "{{ endpoints.bridgehub }}",
       "maxWatchedExtrinsics": "{{ parachain.max_watched_extriniscs }}",
       "headerRedundancy": 20,
-      "heartbeat-secs": 30
+      "heartbeat-secs": "{{ parachain.heartbeat_secs }}"
     }
   },
   "instantVerification": false,
