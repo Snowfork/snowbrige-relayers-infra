@@ -10,7 +10,7 @@ ethereum_chain:
     electra: 364032
   gas_limit: 0
   gas_tip_cap: 1000000
-  heartbeat_secs: 180,
+  heartbeat_secs: 300,
   pending-tx-timeout-secs: 180
 endpoints:
   beacon: "https://snowfork-eth-mainnet-beacon-lodestar.n.dwellir.com/{{ lookup('amazon.aws.secretsmanager_secret', 'snowbridge/dwellir-eth-node-api-key', region='eu-central-1') }}"
@@ -27,15 +27,15 @@ channels:
   assethub: "0xc173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539"
 parachain:
   max_watched_extriniscs: 200
-  heartbeat_secs: 30
+  heartbeat_secs: 60
 polkadot:
-  heartbeat_secs: 30
+  heartbeat_secs: 60
 relayer:
   update_slot_interval: 32
 message_relayers:
   id: "{{ lookup('env', 'RELAYER_ID') }}"
   relayer_count: "{{ lookup('env', 'RELAYER_COUNT') }}"
-  sleep_interval: 180
+  sleep_interval: 60
 ofac:
   enabled: "true"
 relays:
