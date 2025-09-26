@@ -22,7 +22,7 @@
     "ethereum": {
       "endpoint": "{{ endpoints.flashbots }}",
       "heartbeat-secs": "{{ ethereum_chain.heartbeat_secs }}",
-      "pending-tx-timeout-secs": "{{ ethereum_chain.pending-tx-timeout-secs }}"
+      "pending-tx-timeout-secs": "{{ ethereum_chain.pending_tx_timeout_secs }}"
     },
     "contracts": {
       "Gateway": "{{ contracts.Gateway }}"
